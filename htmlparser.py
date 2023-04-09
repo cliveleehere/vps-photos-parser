@@ -10,29 +10,39 @@ from bs4 import Comment
 from bs4 import Tag
 
 
-def find_year(date_string):
-    today = datetime.date.today()
-    date_formats = [
-        ('%m/%d/%Y', None),
-        ('%B %d', '%Y')
-    ]
+def find_year(date_string, previous_date_year=None, current_date=datetime.date.today()):
+    year_match = re.search(r'\b\d{4}\b', date_string)
+    if year_match:
+        return int(year_match.group())
+    else:
+        # Check for a two-digit year with different separators
+        two_digit_year_match = re.search(r'(?<=\b\d{1,2}[\/\\-])\d{2}\b', date_string)
+        if two_digit_year_match:
+            two_digit_year = int(two_digit_year_match.group())
+            # Assume 1900-2099 for two-digit years
+            if 0 <= two_digit_year <= 99:
+                return 2000 + two_digit_year if two_digit_year < 50 else 1900 + two_digit_year
 
-    for date_format, year_format in date_formats:
-        try:
-            parsed_date = datetime.datetime.strptime(date_string, date_format)
-            if year_format is None:
-                return parsed_date.year, parsed_date.month, parsed_date.day
-            else:
-                if parsed_date.month > today.month or (parsed_date.month == today.month and parsed_date.day > today.day):
-                    parsed_date = parsed_date.replace(year=today.year - 1)
+        if previous_date_year:
+            month_day_match = re.search(r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}', date_string)
+            if month_day_match:
+                month_day = datetime.datetime.strptime(month_day_match.group(), '%B %d')
+                if month_day.month == 12:
+                    return previous_date_year - 1
                 else:
-                    parsed_date = parsed_date.replace(year=today.year)
-                return parsed_date.year, parsed_date.month, parsed_date.day
-        except ValueError:
-            pass
+                    return previous_date_year
+        else:
+            # Assume current year, but subtract 1 if the resulting date would be in the future
+            inferred_year = current_date.year
+            month_day_match = re.search(r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}', date_string)
+            if month_day_match:
+                month_day = datetime.datetime.strptime(month_day_match.group(), '%B %d')
+                inferred_date = datetime.date(inferred_year, month_day.month, month_day.day)
+                if inferred_date > current_date:
+                    inferred_year -= 1
+            return inferred_year
 
-    return None, None, None
-    
+    return None
 
 def update_image_date_taken(image_path, new_date):
     # Convert date to EXIF format (YYYY:MM:DD HH:MM:SS)
@@ -69,31 +79,53 @@ def extract_date_from_text(text):
     return None
 
 
-def process_html(html_file, end_date=None):
-    with open(html_file, 'r', encoding='utf-8') as file:
-        html_content = file.read()
+def parse_date(date_string, previous_date_year=None):
+    if not date_string:
+        return None
 
-    soup = BeautifulSoup(html_content, 'html.parser')
+    year = find_year(date_string, previous_date_year)
+    if not year:
+        return None
 
-    current_date = None
-    for element in soup.descendants:
-        if not isinstance(element, Tag) or isinstance(element, Comment):
+    parsed_date = datetime.date(year, *map(int, re.findall(r'\d+', date_string)[:2]))
+    return parsed_date 
+
+
+def process_html(html_file, end_date=None, current_date=datetime.date.today()):
+    with open(html_file, 'r') as file:
+        content = file.read()
+
+    soup = BeautifulSoup(content, 'html.parser')
+
+    date = None
+    previous_date_year = None
+
+    datesParsed = 0
+    imagesDated = 0
+
+    for element in soup(text=extract_date_from_text):
+        if not isinstance(element, Tag):
             continue
-
+        
         if element.name == 'span':
-            text = element.get_text(strip=True)
-
-            # Find the date in the text
-            date_string = extract_date_from_text(text)
+            date_string = extract_date_from_text(element.string)
             if date_string:
-                year, month, day = find_year(date_string)
-                if year and month and day:
-                    current_date = datetime.date(year, month, day)
-                    if end_date and current_date <= end_date:
-                        break
-        elif current_date and element.name == 'img' and element.has_attr('src'):
+                date = parse_date(date_string, previous_date_year)
+                previous_date_year = date.year
+                datesParsed += 1
+                if end_date and current_date <= end_date:
+                    break
+
+        if element.name == 'img':
             image_path = os.path.join(os.path.dirname(html_file), element['src'])
-            update_image_date_taken(image_path, current_date)
+            if date:
+                imagesDated += 1
+                update_image_date_taken(image_path, date)
+
+    print(f"Dates parsed: {datesParsed}")
+    print(f"Images dated: {imagesDated}")
+    return soup
+
 
 if __name__ == "__main__":
     html_file = 'photos/evie/EviesDailyCommunicationlog.html'
