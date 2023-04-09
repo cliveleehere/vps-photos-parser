@@ -103,11 +103,12 @@ def process_html(html_file, end_date=None, current_date=datetime.date.today()):
     datesParsed = 0
     imagesDated = 0
 
-    for element in soup(text=extract_date_from_text):
+    for element in soup.descendants:
         if not isinstance(element, Tag):
             continue
         
         if element.name == 'span':
+            print("is in span")
             date_string = extract_date_from_text(element.string)
             if date_string:
                 date = parse_date(date_string, previous_date_year)
