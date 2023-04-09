@@ -16,9 +16,9 @@ def find_year(date_string, previous_date_year=None, current_date=datetime.date.t
         return int(year_match.group())
     else:
         # Check for a two-digit year with different separators
-        two_digit_year_match = re.search(r'(?<=\b\d{1,2}[\/\\-])\d{2}\b', date_string)
+        two_digit_year_match = re.search(r'\b\d{1,2}[\/\\-](\d{2})\b', date_string)
         if two_digit_year_match:
-            two_digit_year = int(two_digit_year_match.group())
+            two_digit_year = int(two_digit_year_match.group(1))
             # Assume 1900-2099 for two-digit years
             if 0 <= two_digit_year <= 99:
                 return 2000 + two_digit_year if two_digit_year < 50 else 1900 + two_digit_year
@@ -44,6 +44,7 @@ def find_year(date_string, previous_date_year=None, current_date=datetime.date.t
 
     return None
 
+
 def update_image_date_taken(image_path, new_date):
     # Convert date to EXIF format (YYYY:MM:DD HH:MM:SS)
     new_date_string = new_date.strftime('%Y:%m:%d %H:%M:%S')
@@ -66,6 +67,8 @@ def update_image_date_taken(image_path, new_date):
         print(f"Error processing image {image_path} with new date {new_date_string}: {e}")
 
 def extract_date_from_text(text):
+    if text is None:
+        return None
     date_formats = [
         r'\d{1,2}[\/\\-]\d{1,2}[\/\\-]\d{2,4}',
         r'\d{1,2}[\/\\-]\d{1,2}',
@@ -75,20 +78,32 @@ def extract_date_from_text(text):
     for date_format in date_formats:
         date_match = re.search(date_format, text)
         if date_match:
+            print(f"date extracted {date_match}")
             return date_match.group()
     return None
 
+def parse_date(date_string, previous_date_year=None, current_date=datetime.date.today()):
+    year = find_year(date_string, previous_date_year, current_date)
 
-def parse_date(date_string, previous_date_year=None):
-    if not date_string:
-        return None
+    month_names = r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*'
+    month_match = re.search(month_names, date_string)
+    if month_match:
+        month = datetime.datetime.strptime(month_match.group(), '%B').month
+    else:
+        month = int(re.search(r'\d+', date_string).group())
 
-    year = find_year(date_string, previous_date_year)
-    if not year:
-        return None
+    day_match = re.search(r'\b\d{1,2}[\/\\\-](\d{1,2})', date_string)
+    if day_match:
+        day = int(day_match.group(1))
+    else:
+        day = int(re.search(r'\d+', re.sub(month_names, '', date_string)).group())
 
-    parsed_date = datetime.date(year, *map(int, re.findall(r'\d+', date_string)[:2]))
-    return parsed_date 
+    if year:
+        parsed_date = datetime.date(year, month, day)
+    else:
+        raise ValueError(f"Unable to parse date string: {date_string}")
+
+    return parsed_date
 
 
 def process_html(html_file, end_date=None, current_date=datetime.date.today()):
@@ -108,13 +123,14 @@ def process_html(html_file, end_date=None, current_date=datetime.date.today()):
             continue
         
         if element.name == 'span':
-            print("is in span")
             date_string = extract_date_from_text(element.string)
             if date_string:
                 date = parse_date(date_string, previous_date_year)
+                print(f"date parsed: {date} from date_string {date_string}")
                 previous_date_year = date.year
                 datesParsed += 1
                 if end_date and current_date <= end_date:
+                    print(f"end date reached: {end_date}" )
                     break
 
         if element.name == 'img':
