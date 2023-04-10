@@ -11,7 +11,7 @@ from bs4 import Tag
 from dateutil.parser import parse as date_parse
 from datetime import datetime
 
-def update_image_date_taken(image_path, new_date):
+def update_image_date_taken(image_path, new_date, failed_images):
     # Convert date to EXIF format (YYYY:MM:DD HH:MM:SS)
     new_date_string = new_date.strftime('%Y:%m:%d %H:%M:%S')
 
@@ -31,8 +31,7 @@ def update_image_date_taken(image_path, new_date):
         print(f"Unable to set 'DateTimeOriginal' for {image_path}")
     except Exception as e:
         print(f"Error processing image {image_path} with new date {new_date_string}: {e}")
-
-
+        failed_images.append((image_path, new_date))
 
 month_names = r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*'
 first_pattern = rf'\b({month_names})\s+(\d{{1,2}})(?:st|nd|rd|th)?(?:,\s+(\d{{2,4}}))?\b'
@@ -82,11 +81,6 @@ def try_first_pattern(text, prev_date=None):
     # Return the date as a datetime instance
     return datetime(year, month, day)
 
-
-
-date_patterns = [
-    # Format: "01-26-2022", "1-26-22", "01/26/2022", "1/26/22", "01\26\2022", "1\26\22
-]
 second_pattern = r'\b(\d{1,2})[-\/\\](\d{1,2})[-\/\\](?:(\d{2,4}))\b'
 
 def try_second_pattern(text, prev_date=None):
@@ -159,6 +153,8 @@ def process_html(html_file, end_date=None, current_date=datetime.today()):
     datesParsed = 0
     imagesDated = 0
 
+    failed_images = []
+
     for element in soup.descendants:
         if not isinstance(element, Tag):
             continue
@@ -178,10 +174,11 @@ def process_html(html_file, end_date=None, current_date=datetime.today()):
             image_path = os.path.join(os.path.dirname(html_file), element['src'])
             if date:
                 imagesDated += 1
-                update_image_date_taken(image_path, date)
+                update_image_date_taken(image_path, date, failed_images)
 
     print(f"Dates parsed: {datesParsed}")
     print(f"Images dated: {imagesDated}")
+    print(f"Failed images: {failed_images}")
     return soup
 
 
@@ -189,4 +186,6 @@ if __name__ == "__main__":
     html_file = 'photos/evie/EviesDailyCommunicationlog.html'
     end_date_string = '2023-03-29'  # Format: YYYY-MM-DD
     end_date = datetime.fromisoformat(end_date_string)
-    process_html(html_file)
+
+    soup = process_html(html_file)
+
