@@ -164,8 +164,9 @@ def process_html(html_file, end_date=None, current_date=datetime.today()):
             continue
         
         if element.name == 'span':
-            date = parse_date_from_text(element.string)
-            if date:
+            possible_date = parse_date_from_text(element.string)
+            if possible_date:
+                date = possible_date
                 # print(f"date parsed: {date} from date_string {element.string}")
                 previous_date_year = date.year
                 datesParsed += 1
