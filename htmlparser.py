@@ -8,42 +8,8 @@ import os
 from exif import Image
 from bs4 import Comment
 from bs4 import Tag
-
-
-def find_year(date_string, previous_date_year=None, current_date=datetime.date.today()):
-    year_match = re.search(r'\b\d{4}\b', date_string)
-    if year_match:
-        return int(year_match.group())
-    else:
-        # Check for a two-digit year with different separators
-        two_digit_year_match = re.search(r'\b\d{1,2}[\/\\-](\d{2})\b', date_string)
-        if two_digit_year_match:
-            two_digit_year = int(two_digit_year_match.group(1))
-            # Assume 1900-2099 for two-digit years
-            if 0 <= two_digit_year <= 99:
-                return 2000 + two_digit_year if two_digit_year < 50 else 1900 + two_digit_year
-
-        if previous_date_year:
-            month_day_match = re.search(r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}', date_string)
-            if month_day_match:
-                month_day = datetime.datetime.strptime(month_day_match.group(), '%B %d')
-                if month_day.month == 12:
-                    return previous_date_year - 1
-                else:
-                    return previous_date_year
-        else:
-            # Assume current year, but subtract 1 if the resulting date would be in the future
-            inferred_year = current_date.year
-            month_day_match = re.search(r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}', date_string)
-            if month_day_match:
-                month_day = datetime.datetime.strptime(month_day_match.group(), '%B %d')
-                inferred_date = datetime.date(inferred_year, month_day.month, month_day.day)
-                if inferred_date > current_date:
-                    inferred_year -= 1
-            return inferred_year
-
-    return None
-
+from dateutil.parser import parse as date_parse
+from datetime import datetime
 
 def update_image_date_taken(image_path, new_date):
     # Convert date to EXIF format (YYYY:MM:DD HH:MM:SS)
@@ -66,47 +32,83 @@ def update_image_date_taken(image_path, new_date):
     except Exception as e:
         print(f"Error processing image {image_path} with new date {new_date_string}: {e}")
 
-def extract_date_from_text(text):
+
+
+month_names = r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*'
+# first_pattern = rf'\b{month_names}\s+\d{{1,2}}(?:st|nd|rd|th)?(?:,\s+\d{{2,4}})?\b'
+first_pattern = rf'\b({month_names})\s+(\d{{1,2}})(?:st|nd|rd|th)?(?:,\s+(\d{{2,4}}))?\b'
+
+def try_first_pattern(text, prev_date=None):
+    
+    date_match = re.search(first_pattern, text, flags=re.IGNORECASE)
+    
+    if not date_match:
+        return None
+    
+    try:
+        month_name, day, year = date_match.group(1,2,3)
+    except IndexError:
+        month_name, day = date_match.group(1,2)
+        year = None
+
+    # Match month
+    month_match = re.search(month_names, month_name, flags=re.IGNORECASE)
+    if month_match:
+        month_name = month_match.group(0)
+        month = datetime.strptime(month_name, '%B').month
+
+    # Match day
+    day = int(day)
+
+    # Match year
+    if year:
+        year = int(year)
+        if len(str(year)) == 2:
+            year += 2000
+
+    # Set the year if missing
+    if year is None:
+        if prev_date:
+            prev_year = prev_date.year
+            test_date = datetime(prev_year, month, day)
+            if test_date > prev_date:
+                year = prev_year - 1
+            else:
+                year = prev_year
+        else:
+            year = 2023
+            test_date = datetime(year, month, day)
+            if test_date > datetime.now():
+                year -= 1
+
+    # Return the date as a datetime instance
+    return datetime(year, month, day)
+
+date_patterns = [
+    # Format: "January 26th", "Feb 3rd", "March 5"
+    rf'\b{month_names}\s+\d{{1,2}}(?:st|nd|rd|th)?(?:,\s+\d{{2,4}})?\b',
+
+    # Format: "26 January", "3 Feb", "5 March"
+    rf'\b\d{{1,2}}(?:st|nd|rd|th)?\s+{month_names}(?:\s+\d{{2,4}})?\b',
+
+    # Format: "01-26-2022", "1-26-22", "01/26/2022", "1/26/22", "01\26\2022", "1\26\22"
+    r'\b\d{1,2}[-/\\]\d{1,2}[-/\\]\d{2,4}\b'
+]
+
+def parse_date_from_text(text, prev_date=None):
     if text is None:
         return None
-    date_formats = [
-        r'\d{1,2}[\/\\-]\d{1,2}[\/\\-]\d{2,4}',
-        r'\d{1,2}[\/\\-]\d{1,2}',
-        r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,\s*\d{2,4})?'
-    ]
+    
+    parsed_datetime = try_first_pattern(text, prev_date)
 
-    for date_format in date_formats:
-        date_match = re.search(date_format, text)
-        if date_match:
-            print(f"date extracted {date_match}")
-            return date_match.group()
+    if parsed_datetime:
+        return parsed_datetime
+    
     return None
 
-def parse_date(date_string, previous_date_year=None, current_date=datetime.date.today()):
-    year = find_year(date_string, previous_date_year, current_date)
-
-    month_names = r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*'
-    month_match = re.search(month_names, date_string)
-    if month_match:
-        month = datetime.datetime.strptime(month_match.group(), '%B').month
-    else:
-        month = int(re.search(r'\d+', date_string).group())
-
-    day_match = re.search(r'\b\d{1,2}[\/\\\-](\d{1,2})', date_string)
-    if day_match:
-        day = int(day_match.group(1))
-    else:
-        day = int(re.search(r'\d+', re.sub(month_names, '', date_string)).group())
-
-    if year:
-        parsed_date = datetime.date(year, month, day)
-    else:
-        raise ValueError(f"Unable to parse date string: {date_string}")
-
-    return parsed_date
 
 
-def process_html(html_file, end_date=None, current_date=datetime.date.today()):
+def process_html(html_file, end_date=None, current_date=datetime.today()):
     with open(html_file, 'r') as file:
         content = file.read()
 
@@ -123,10 +125,9 @@ def process_html(html_file, end_date=None, current_date=datetime.date.today()):
             continue
         
         if element.name == 'span':
-            date_string = extract_date_from_text(element.string)
-            if date_string:
-                date = parse_date(date_string, previous_date_year)
-                print(f"date parsed: {date} from date_string {date_string}")
+            date = parse_date_from_text(element.string)
+            if date:
+                print(f"date parsed: {date} from date_string {element.string}")
                 previous_date_year = date.year
                 datesParsed += 1
                 if end_date and current_date <= end_date:
@@ -147,5 +148,5 @@ def process_html(html_file, end_date=None, current_date=datetime.date.today()):
 if __name__ == "__main__":
     html_file = 'photos/evie/EviesDailyCommunicationlog.html'
     end_date_string = '2023-03-29'  # Format: YYYY-MM-DD
-    end_date = datetime.date.fromisoformat(end_date_string)
+    end_date = datetime.fromisoformat(end_date_string)
     process_html(html_file)
