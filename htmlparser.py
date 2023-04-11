@@ -6,6 +6,7 @@
 # 4) run script via terminal "python htmlparser.py"
 # 5) There may be few images that didn't set the dates appropriately. Look at the output and manually set the date taken
 # 6) Put the images with the set dates in the syncthings folder
+# 7) Run syncthing (shortcut on desktop) and make sure it's backed up on the Pixel 3
 
 from bs4 import BeautifulSoup
 from PIL import Image
