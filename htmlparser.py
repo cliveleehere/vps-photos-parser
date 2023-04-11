@@ -1,3 +1,12 @@
+# How to run this:
+# 1) download the docs from daycare doc as html / zipped. There should be 3 (evie/malachi/busybear2)
+# 2) unzip, and copy the path
+# 3) paste the paths below at the bottom of this script
+# 4) Change the date to the last time this script was run. This should skip older images that were already imported 
+# 4) run script via terminal "python htmlparser.py"
+# 5) There may be few images that didn't set the dates appropriately. Look at the output and manually set the date taken
+# 6) Put the images with the set dates in the syncthings folder
+
 from bs4 import BeautifulSoup
 from PIL import Image
 from PIL.ExifTags import TAGS
@@ -188,5 +197,5 @@ if __name__ == "__main__":
 
     process_html('photos/evie/EviesDailyCommunicationlog.html', end_date)
     process_html('photos/malachi/MalachisDailyCommunicationlog.html', end_date)
-    process_html('photos/busybears2/EviesDailyCommunicationlog.html', end_date)
+    process_html('photos/busybears2/busybears2classCommunicationlog.html', end_date)
 
