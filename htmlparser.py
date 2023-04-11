@@ -183,9 +183,10 @@ def process_html(html_file, end_date=None, current_date=datetime.today()):
 
 
 if __name__ == "__main__":
-    html_file = 'photos/evie/EviesDailyCommunicationlog.html'
-    end_date_string = '2023-03-29'  # Format: YYYY-MM-DD
+    end_date_string = '2000-01-01'  # Format: YYYY-MM-DD
     end_date = datetime.fromisoformat(end_date_string)
 
-    soup = process_html(html_file)
+    process_html('photos/evie/EviesDailyCommunicationlog.html', end_date_string)
+    process_html('photos/malachi/MalachisDailyCommunicationlog.html', end_date_string)
+    process_html('photos/busybears2/busybears2Communicationlog.html', end_date_string)
 
