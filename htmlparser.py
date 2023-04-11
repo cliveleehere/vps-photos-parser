@@ -183,10 +183,10 @@ def process_html(html_file, end_date=None, current_date=datetime.today()):
 
 
 if __name__ == "__main__":
-    end_date_string = '2000-01-01'  # Format: YYYY-MM-DD
+    end_date_string = '2000-01-01'  # Format: YYYY-MM-DD. Set this to the last time i ran this, so i only get the new images
     end_date = datetime.fromisoformat(end_date_string)
 
-    process_html('photos/evie/EviesDailyCommunicationlog.html', end_date_string)
-    process_html('photos/malachi/MalachisDailyCommunicationlog.html', end_date_string)
-    process_html('photos/busybears2/busybears2Communicationlog.html', end_date_string)
+    process_html('photos/evie/EviesDailyCommunicationlog.html', end_date)
+    process_html('photos/malachi/MalachisDailyCommunicationlog.html', end_date)
+    process_html('photos/busybears2/EviesDailyCommunicationlog.html', end_date)
 
