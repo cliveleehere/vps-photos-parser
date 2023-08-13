@@ -1,5 +1,6 @@
 # How to run this:
-# 1) download the docs from daycare doc as html / zipped. There should be 3 (evie/malachi/busybear2)
+# 0) Copy the daycare docs.  There should be 2: malachi and busybear2. In the copy, delete the older parts that have already been backed up
+# 1) Download the copied docs as html / zipped.
 # 2) unzip, and copy the path
 # 3) paste the paths below at the bottom of this script
 # 4) Change the date to the last time this script was run. This should skip older images that were already imported 
@@ -193,10 +194,9 @@ def process_html(html_file, end_date=None, current_date=datetime.today()):
 
 
 if __name__ == "__main__":
-    end_date_string = '2023-04-11'  # Format: YYYY-MM-DD. Set this to the last time i ran this, so i only get the new images
-    end_date = datetime.fromisoformat(end_date_string)
+    # end_date_string = '2023-04-11'  # Format: YYYY-MM-DD. Set this to the last time i ran this, so i only get the new images
+    # end_date = datetime.fromisoformat(end_date_string)
 
-    process_html('photos/evie/EviesDailyCommunicationlog.html', end_date)
-    process_html('photos/malachi/MalachisDailyCommunicationlog.html', end_date)
-    process_html('photos/busybears2/busybears2classCommunicationlog.html', end_date)
+    process_html('photos/06_24_23_malachi/62423CopyofMalachisdailycommunicationlog.html') #, end_date)
+    process_html('photos/06_24_2023_busy_bear_2/06242023CopyofBusyBears2classcommunicationlog.html') #, end_date)
 
