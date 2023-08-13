@@ -197,6 +197,6 @@ if __name__ == "__main__":
     # end_date_string = '2023-04-11'  # Format: YYYY-MM-DD. Set this to the last time i ran this, so i only get the new images
     # end_date = datetime.fromisoformat(end_date_string)
 
-    process_html('photos/06_24_23_malachi/62423CopyofMalachisdailycommunicationlog.html') #, end_date)
-    process_html('photos/06_24_2023_busy_bear_2/06242023CopyofBusyBears2classcommunicationlog.html') #, end_date)
+    process_html('C:/Users/hyung/Desktop/vps-photos-parser/photos/06_24_23_malachi/62423CopyofMalachisdailycommunicationlog.html') #, end_date)
+    process_html('C:/Users/hyung/Desktop/vps-photos-parser/photos/06_24_2023_busy_bear_2/06242023CopyofBusyBears2classcommunicationlog.html') #, end_date)
 
