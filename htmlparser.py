@@ -1,6 +1,6 @@
 # How to run this:
-# 0) Copy the daycare docs.  There should be 2: malachi and busybear2. In the copy, delete the older parts that have already been backed up
-# 1) Download the copied docs as html / zipped.
+# 0) Copy the daycare docs.  There should be 3: evie, malachi and UPK. In the copy, delete the older parts that have already been backed up
+# 1) Download the copied docs as html / zipped. Then delete the copied docs to save space!
 # 2) unzip, and copy the path
 # 3) paste the paths below at the bottom of this script
 # 4) Change the date to the last time this script was run. This should skip older images that were already imported 
@@ -63,7 +63,10 @@ def try_first_pattern(text, prev_date=None):
     month_match = re.search(month_names, month_name, flags=re.IGNORECASE)
     if month_match:
         month_name = month_match.group(0)
-        month = datetime.strptime(month_name, '%B').month
+        try:
+            month = datetime.strptime(month_name, '%B').month
+        except ValueError:
+            month = datetime.strptime(month_name, '%b').month
 
     # Match day
     day = int(day)
@@ -196,7 +199,7 @@ def process_html(html_file, end_date=None, current_date=datetime.today()):
 if __name__ == "__main__":
     # end_date_string = '2023-04-11'  # Format: YYYY-MM-DD. Set this to the last time i ran this, so i only get the new images
     # end_date = datetime.fromisoformat(end_date_string)
-
-    process_html('C:/Users/hyung/Desktop/vps-photos-parser/photos/06_24_23_malachi/62423CopyofMalachisdailycommunicationlog.html') #, end_date)
-    process_html('C:/Users/hyung/Desktop/vps-photos-parser/photos/06_24_2023_busy_bear_2/06242023CopyofBusyBears2classcommunicationlog.html') #, end_date)
+    process_html('C:/Users/hyung/Desktop/vps-photos-parser/photos/EviesDailyCommunicationlog/EviesDailyCommunicationlog.html') #, end_date)
+    process_html('C:/Users/hyung/Desktop/vps-photos-parser/photos/Malachisdailycommunicationlog/Malachisdailycommunicationlog.html') #, end_date)
+    process_html('C:/Users/hyung/Desktop/vps-photos-parser/photos/CopyofUPKAchieverscommunicationlog/CopyofUPKAchieverscommunicationlog.html') #, end_date)
 
